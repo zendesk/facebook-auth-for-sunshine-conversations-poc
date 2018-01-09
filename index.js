@@ -2,6 +2,7 @@
 
 require('dotenv').config();
 
+const axios = require('axios');
 const Smooch = require('smooch-core');
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -21,6 +22,9 @@ const smooch = new Smooch({
 express()
     .use(express.static('public'))
     .use(bodyParser.json())
+    .get('/facebook_app_id', (req, res) => {
+        res.json({ facebookAppId: FACEBOOK_APP_ID });
+    })
     .get('/integrate', (req, res) => {
         const smoochAppId = req.query.id;
         const accessToken = req.query.token;
@@ -36,4 +40,21 @@ express()
                 message: error.message
             }}));
     })
+    .get('/token', async function(req, res) {
+        const nonExpiringToken = await getNonExpiringToken(req.query.userAccessToken);
+        const data = await getPagesWithTokens(nonExpiringToken);
+        res.json(data);
+    })
     .listen(PORT, () => console.log('Service running on port', PORT));
+
+async function getNonExpiringToken(userAccessToken) {
+    const url = `https://graph.facebook.com/oauth/access_token?client_id=${FACEBOOK_APP_ID}&client_secret=${FACEBOOK_APP_SECRET}&grant_type=fb_exchange_token&fb_exchange_token=${userAccessToken}`
+    const response = await axios.get(url);
+    return response.data.access_token;
+}
+
+async function getPagesWithTokens(userAccessToken) {
+    const url = `https://graph.facebook.com/me/accounts?client_id=${FACEBOOK_APP_ID}&client_secret=${FACEBOOK_APP_SECRET}&access_token=${userAccessToken}&limit=500`
+    const response = await axios.get(url);
+    return response.data;
+}

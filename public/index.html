@@ -7,35 +7,43 @@
     <title>Document</title>
 </head>
 <body>
-    <input id="facebook-app-id" type="text" placeholder="Facebook app ID">
     <input id="smooch-app-id" type="text" placeholder="Smooch app ID">
     <button id="integrate-button">integrate</button>
     <script src="https://connect.facebook.net/en_US/sdk.js"></script>
     <script>
     const integrateButton = document.getElementById('integrate-button');
     integrateButton.onclick = () => {
-        const facebookAppId = document.getElementById('facebook-app-id').value;
         const smoochAppId = document.getElementById('smooch-app-id').value;
 
-        FB.init({
-            appId: facebookAppId,
-            autoLogAppEvents: true,
-            status: true,
-            version: 'v2.9'
-        });
+        fetch('/facebook_app_id')
+            .then(response => response.json())
+            .then(body => {
+                FB.init({
+                    appId: body.facebookAppId,
+                    autoLogAppEvents: true,
+                    status: true,
+                    version: 'v2.9'
+                });
 
-        FB.login((data) => {
-            FB.api('/me/accounts', 'get', {}, (response) => {
-                response.data.forEach((page) => {
-                    const para = document.createElement('p');
-                    const link = document.createElement('a');
-                    link.innerText = page.name;
-                    link.href = `/integrate?token=${page.access_token}&id=${smoochAppId}`;
-                    para.appendChild(link);
-                    document.body.appendChild(para);
-                })
-            });
-        });
+                FB.login((data) => {
+                    const userAccessToken = data.authResponse.accessToken;
+                    fetch(`/token?userAccessToken=${userAccessToken}`)
+                        .then(response => response.json())
+                        .then(body => {
+                            body.data.forEach((page) => {
+                                const para = document.createElement('p');
+                                const link = document.createElement('a');
+                                link.innerText = page.name;
+                                link.href = `/integrate?token=${page.access_token}&id=${smoochAppId}`;
+                                para.appendChild(link);
+                                document.body.appendChild(para);
+                            });
+                        })
+                        .catch(error => console.log('Login', error));
+                });
+
+            })
+            .catch(error => console.log('Service', error));
     };
     </script>
 </body>
