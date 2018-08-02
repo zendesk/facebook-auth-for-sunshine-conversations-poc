@@ -40,6 +40,8 @@
                             });
                         })
                         .catch(error => console.log('Login', error));
+                }, {
+                    scope: 'manage_pages,pages_messaging'
                 });
 
             })
